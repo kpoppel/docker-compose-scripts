@@ -6,13 +6,13 @@
 #           [hypriot.com](blog.hypriot.com/post/new-docker-ui-portainer)
 # date:     2017-07-01
 
-version: '2'
+version: '3'
 services:
   portainer:
     image: portainer/portainer:latest
       # using portainer image for raspberry pi by deviantony
       # sources: [github.com](https://github.com/portainer/portainer.git)
-    container_name: portainer-app
+    container_name: portainer
     volumes:
       # establish connection to docker
       - /var/run/docker.sock:/var/run/docker.sock
@@ -22,12 +22,21 @@ services:
 #      - /home/pi/ssl-keys:/certs
     command: --host=unix:///var/run/docker.sock
 #    command: --host=unix:///var/run/docker.sock  --ssl --sslcert /certs/piserver.crt --sslkey /certs/piserver.key
+    networks:
+      discovery:
     ports:
       # http port
       - "9000:9000"
-#      - "443:9000"
     restart: on-failure
     labels:
-      - traefik.enable=true
-      - "portainer.frontend.rule=Host:portainer.docker.localhost"
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:portainer.lan"
+      - "traefik.backend=portainer"
+      - "traefik.docker.network=discovery"
+      - "traefik.port=9000"
+
+networks:
+  discovery:
+    external:
+      name: discovery
 
