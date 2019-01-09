@@ -1,0 +1,20 @@
+# create new watchtower container for raspberry pi with docker-compose
+# start:    `docker-compose up -d`
+# upgrade:  `docker-compose down && docker rm watchtower-app && docker-compose up -d`
+# sources:  [niels.nu](http://vps2.niels.nu/blog/2017/continuous-blog-delivery-p1.html)
+# date:     2017-07-01
+
+version: '2'
+services:
+  watchtower:
+    image: v2tec/watchtower:armhf-latest
+      # using watchtower image for raspberry pi by v2tec
+      # sources: [github.com](https://github.com/v2tec/watchtower.git)
+    container_name: watchtower-app
+    command: --interval 60 --cleanup --debug
+      # change update check intervall `--schedule @hourly --cleanup` if no errors arise
+    volumes:
+      # establish connection to docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: on-failure
+      # this app don't require any `ports` or `expose` settings
