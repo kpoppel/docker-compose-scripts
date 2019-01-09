@@ -11,8 +11,10 @@ services:
       # using watchtower image for raspberry pi by v2tec
       # sources: [github.com](https://github.com/v2tec/watchtower.git)
     container_name: watchtower-app
-    command: --interval 60 --cleanup --debug
-      # change update check intervall `--schedule @hourly --cleanup` if no errors arise
+    #  Use this while settinup:
+    #command: --interval 60 --cleanup --debug
+    # change update check intervall `--schedule @hourly --cleanup` if no errors arise
+    command: --schedule @hourly --cleanup
     volumes:
       # establish connection to docker
       - /var/run/docker.sock:/var/run/docker.sock
