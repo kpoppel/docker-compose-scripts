@@ -1,0 +1,152 @@
+#https://github.com/pi-hole/docker-pi-hole
+version: "3"
+
+# Define two networks:
+#  "internal"
+#    This network is for this stack.  We need to be able to set a specific IP address for
+#    pi-hole as it's internal dnsmasq cannot figure out 'internal', it just needs an IP.
+#  "discovery"
+#    This network is for traefik to discover other containers not started in this stack.
+#    Other compose files must define this network and use it.
+#    NOTE: Create this network manually "docker network create discovery"
+#    otherwise docker-compose will remove it if this stack is removed someday.
+networks:
+  internal:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
+  discovery:
+    external: true
+
+services:
+  traefik:
+    # You can set a name if you don't like the generated one:
+    #container_name: traefik
+    domainname: lan
+    
+    image: traefik
+    restart: unless-stopped
+    # Note I opt to whitelist certain apps for exposure to traefik instead of auto discovery
+    # use `--docker.exposedbydefault=true` if you don't want to have to do this
+    # Log levels: DEBUG INFO WARN ERROR FATAL PANIC
+    command: "--api --docker --docker.domain=lan --docker.exposedbydefault=false --logLevel=ERROR"
+    ports:
+      - "80:80"      # The HTTP port
+      - "443:443"    # The HTTPS port
+      - "8080:8080"  # The Web UI (enabled by --api)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml
+      # Alternately use customised configuration file:
+      #- /home/pi/containers/traefik:/traefik.toml
+    networks:
+      internal:
+        ipv4_address: 172.16.0.4
+      discovery:
+    dns:
+      - 172.16.0.2
+    labels:
+       # required when using --docker.exposedbydefault=false
+       - "traefik.enable=true"
+       - "traefik.frontend.rule=Host:monitor.lan"
+       - "traefik.backend=monitor"
+       - "traefik.port=8080"
+
+  unbound:
+    restart: always
+    # You can set a name if you don't like the generated one:
+    #container_name: unbound
+    domainname: lan
+    build:
+      context: .
+      dockerfile: Dockerfile-unbound
+    image: unbound
+    dns: 127.0.0.1
+    networks:
+      internal:
+        ipv4_address: 172.16.0.2
+    volumes:
+      # Just include the a_records file:
+      # - /home/pi/containers/unbound/a-records.conf:/etc/unbound/a-records.conf:ro
+      # Or if you have custom unbound.conf file and other config files
+      # (the container will generate the files if not present):
+      - /home/pi/containers/pihole-unbound/etc/unbound:/etc/unbound/
+      # Add root hints file
+      # root hints file from here:
+      #    wget -O root.hints https://www.internic.net/domain/named.root
+      # - /home/pi/containers/pihole_unbound/var/log/unbound.log:/var/log/unbound/unbound.log
+    labels:
+       # required when using --docker.exposedbydefault=false
+       - "traefik.enable=true"
+       - "traefik.frontend.rule=HostRegexp:unbound.lan"
+       - "traefik.backend=unbound"
+       - "traefik.port=80"
+
+  pihole:
+    restart: always
+    # You can set a name if you don't like the generated one:
+    #container_name: pihole
+    domainname: lan
+
+    image: pihole/pihole:latest
+    hostname: pi.hole
+    dns:
+      - 127.0.0.1
+      - 8.8.8.8
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "67:67/udp"
+      - "8053:80/tcp"
+      #- "443:443/tcp"
+    networks:
+      internal:
+        ipv4_address: 172.16.0.3
+    depends_on:
+      - unbound
+    environment:
+      # enter your docker host IP here
+      ServerIP: 10.0.1.128
+      # IPv6 Address if your network supports it
+      #ServerIPv6: 192.168.1.55
+      # jwilder/proxy envs, see readme for more info
+      PROXY_LOCATION: pihole
+      VIRTUAL_HOST: pihole.lan
+      VIRTUAL_PORT: 80
+      TZ: "Europe/Copenhagen"
+      #DNSMASQ_LISTENiNG: local|all|NIC
+      DNS1: 172.16.0.2
+      DNS2: 172.16.0.2
+      # http://pi.hole/admin password. Run docker logs pihole | grep random to find your random pass.
+      WEBPASSWORD: piholeadmin
+    # Add your own custom hostnames you need for your domain
+    #extra_hosts:
+      # Add exra hosts to the pi-hole hosts file
+      #- '<mylocalthing.lan>:<host IP>'
+    volumes:
+      - '/home/pi/containers/pihole-unbound/etc/pihole/:/etc/pihole/'
+      # WARNING: if this log don't exist as a file on the host already
+      # docker will try to create a directory in it's place making for lots of errors
+      - '/home/pi/containers/pihole-unbound/var/log/pihole.log:/var/log/pihole.log'
+      # DNSmasq
+      - '/home/pi/containers/pihole-unbound/etc/dnsmasq.d/:/etc/dnsmasq.d/'
+      # lighthttpd
+      #- '/home/pi/containers/pihole-unbound/etc/lighttpd/:/etc/lighttpd/'
+    labels:
+       # required when using --docker.exposedbydefault=false
+       - "traefik.enable=true"
+       # NOTE: All unknown URLs will be directed to this contaner!
+       # https://www.techjunktrunk.com/docker/2017/11/03/traefik-default-server-catch-all/
+       - "traefik.frontend.rule=HostRegexp:pihole.lan,{catchall:.*}"
+       - "traefik.frontend.priority=1"
+       - "traefik.backend=pihole"
+       - "traefik.port=80"
+
+
+# We install all pihole utilities so the the built in pihole commands will work via docker exec <container> <command> like so:
+#
+# docker exec pihole pihole updateGravity
+# docker exec pihole pihole -w spclient.wg.spotify.com
+# docker exec pihole pihole -wild example.com
+
