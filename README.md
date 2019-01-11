@@ -92,7 +92,7 @@ Add this script somewhere (wificheck.sh):
 ##########################################
 #!/bin/bash
 if ping -I wlan0 -c 1 10.0.0.2 | grep -q "0 received"; then
-  echo `date`": No internet - attempting to restart wifi connection" >> /var/log/wificheck.log
+  sudo echo `date`": No internet - attempting to restart wifi connection" >> /var/log/wificheck.log
   sudo ifconfig wlan0 down
   sudo ifconfig wlan0 up
 fi

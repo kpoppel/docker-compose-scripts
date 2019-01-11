@@ -1,0 +1,6 @@
+backend,squeezebox,home.lan,http://filesrv.lan:9000
+backend,plex,home.lan,http://filesrv.lan:32400
+backend,duplicati,home.lan,http://filesrv.lan:8300
+rewrite,notes,home.lan,https://filesrv.lan/ns
+rewrite,browser,home.lan,https://filesrv.lan/browserstation
+rewrite,photo,home.lan,https://filesrv.lan/photostation

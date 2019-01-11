@@ -23,23 +23,24 @@ services:
   traefik:
     # You can set a name if you don't like the generated one:
     #container_name: traefik
-    domainname: lan
+    domainname: docker.lan
     
     image: traefik
     restart: unless-stopped
     # Note I opt to whitelist certain apps for exposure to traefik instead of auto discovery
     # use `--docker.exposedbydefault=true` if you don't want to have to do this
     # Log levels: DEBUG INFO WARN ERROR FATAL PANIC
-    command: "--api --docker --docker.domain=lan --docker.exposedbydefault=false --logLevel=ERROR"
+    command: "--api --docker --docker.domain=docker.lan --docker.exposedbydefault=false --logLevel=INFO"
     ports:
       - "80:80"      # The HTTP port
       - "443:443"    # The HTTPS port
       - "8080:8080"  # The Web UI (enabled by --api)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /dev/null:/traefik.toml
-      # Alternately use customised configuration file:
-      #- /home/pi/containers/traefik:/traefik.toml
+      #- /dev/null:/traefik.toml
+      # Alternately use customised configuration file and rules directory:
+      - /home/pi/containers/pihole-unbound/traefik/traefik.toml:/traefik.toml
+      - /home/pi/containers/pihole-unbound/traefik/rules/:/rules/
     networks:
       internal:
         ipv4_address: 172.16.0.4
@@ -49,7 +50,7 @@ services:
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=true"
-       - "traefik.frontend.rule=Host:monitor.lan"
+       - "traefik.frontend.rule=Host:monitor.docker.lan"
        - "traefik.backend=monitor"
        - "traefik.port=8080"
 
@@ -57,12 +58,16 @@ services:
     restart: always
     # You can set a name if you don't like the generated one:
     #container_name: unbound
-    domainname: lan
+    domainname: docker.lan
     build:
       context: .
       dockerfile: Dockerfile-unbound
     image: unbound
     dns: 127.0.0.1
+    # If debugging without pihole, expose these ports, and comment them out in pihole.
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
     networks:
       internal:
         ipv4_address: 172.16.0.2
@@ -78,8 +83,8 @@ services:
       # - /home/pi/containers/pihole_unbound/var/log/unbound.log:/var/log/unbound/unbound.log
     labels:
        # required when using --docker.exposedbydefault=false
-       - "traefik.enable=true"
-       - "traefik.frontend.rule=HostRegexp:unbound.lan"
+       - "traefik.enable=false"
+       - "traefik.frontend.rule=HostRegexp:unbound.docker.lan"
        - "traefik.backend=unbound"
        - "traefik.port=80"
 
@@ -87,7 +92,7 @@ services:
     restart: always
     # You can set a name if you don't like the generated one:
     #container_name: pihole
-    domainname: lan
+    domainname: docker.lan
 
     image: pihole/pihole:latest
     hostname: pi.hole
@@ -95,8 +100,8 @@ services:
       - 127.0.0.1
       - 8.8.8.8
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
+#      - "53:53/tcp"
+#      - "53:53/udp"
       - "67:67/udp"
       - "8053:80/tcp"
       #- "443:443/tcp"
@@ -112,7 +117,7 @@ services:
       #ServerIPv6: 192.168.1.55
       # jwilder/proxy envs, see readme for more info
       PROXY_LOCATION: pihole
-      VIRTUAL_HOST: pihole.lan
+      VIRTUAL_HOST: pihole.docker.lan
       VIRTUAL_PORT: 80
       TZ: "Europe/Copenhagen"
       #DNSMASQ_LISTENiNG: local|all|NIC
@@ -138,7 +143,7 @@ services:
        - "traefik.enable=true"
        # NOTE: All unknown URLs will be directed to this contaner!
        # https://www.techjunktrunk.com/docker/2017/11/03/traefik-default-server-catch-all/
-       - "traefik.frontend.rule=HostRegexp:pihole.lan,{catchall:.*}"
+       - "traefik.frontend.rule=HostRegexp:pihole.docker.lan,{catchall:.*}"
        - "traefik.frontend.priority=1"
        - "traefik.backend=pihole"
        - "traefik.port=80"
