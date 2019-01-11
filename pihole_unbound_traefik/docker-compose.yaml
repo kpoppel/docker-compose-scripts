@@ -65,9 +65,9 @@ services:
     image: unbound
     dns: 127.0.0.1
     # If debugging without pihole, expose these ports, and comment them out in pihole.
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
+    #ports:
+    #  - "53:53/tcp"
+    #  - "53:53/udp"
     networks:
       internal:
         ipv4_address: 172.16.0.2
@@ -100,8 +100,8 @@ services:
       - 127.0.0.1
       - 8.8.8.8
     ports:
-#      - "53:53/tcp"
-#      - "53:53/udp"
+      - "53:53/tcp"
+      - "53:53/udp"
       - "67:67/udp"
       - "8053:80/tcp"
       #- "443:443/tcp"
