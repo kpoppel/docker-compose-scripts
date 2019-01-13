@@ -108,6 +108,8 @@ services:
     networks:
       internal:
         ipv4_address: 172.16.0.3
+      discovery:
+        ipv4_address: 172.31.0.254
     depends_on:
       - unbound
     environment:

@@ -30,7 +30,7 @@ services:
     restart: on-failure
     labels:
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host:portainer.lan"
+      - "traefik.frontend.rule=Host:portainer.docker.lan"
       - "traefik.backend=portainer"
       - "traefik.docker.network=discovery"
       - "traefik.port=9000"

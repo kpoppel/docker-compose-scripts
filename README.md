@@ -103,3 +103,28 @@ Then ```crontab -e``` and add
 ```crontab
 */5 * * * * <path to scriptwificheck.sh
 `
+
+# DNS in caontainers when using pi hole
+Because we now have a filter on the traffic exiting the network, we also want all
+containers on the host to use it.
+First of all we have to make sure the pi hole container joins the 'discovery' network
+as this makes it visible across all compose files when this network is defined as external
+in those files.  Assign a fixed IP to the pi hole container here as more containers will
+join it later.
+
+In the new container's docker-compose.yaml file add the following network:
+```
+networks:
+  discovery:
+    external: true
+
+```
+and on the service add membership of the discovery network as well al the dns entry
+pointing to pi hole on the discovery network:
+```
+    networks:
+      discovery:
+    dns:
+       - 172.31.0.254
+
+```
