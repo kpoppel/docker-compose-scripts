@@ -1,0 +1,14 @@
+# Should I go to swarm mode:
+#   https://boxboat.com/2017/10/10/managing-multiple-microservices-with-traefik-in-docker-swarm/
+#logLevel = "INFO"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    regex = "^http://photo.home.lan/(.*)"
+    replacement = "http://filesrv.lan/photostation/$1"
+
+[file]
+directory = "/rules/"
+watch = true

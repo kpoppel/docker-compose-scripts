@@ -29,8 +29,8 @@ services:
     restart: unless-stopped
     # Note I opt to whitelist certain apps for exposure to traefik instead of auto discovery
     # use `--docker.exposedbydefault=true` if you don't want to have to do this
-    # Log levels: DEBUG INFO WARN ERROR FATAL PANIC
-    command: "--api --docker --docker.domain=docker.lan --docker.exposedbydefault=false --logLevel=INFO"
+    # Log levels: DEBUG INFO WARN ERROR FATAL PANIC  --logLevel=
+    command: "--api --docker --docker.domain=docker.lan --docker.exposedbydefault=false"
     ports:
       - "80:80"      # The HTTP port
       - "443:443"    # The HTTPS port
@@ -38,15 +38,22 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       #- /dev/null:/traefik.toml
+      # NOTE: Create the traefik.toml file first unless docker should create a directory of it and lots of problems!
+      # Content:
+      ##########
+      # [file]
+      # directory = "/rules/"
+      # watch = true
+      ##########
       # Alternately use customised configuration file and rules directory:
-      - /home/pi/containers/pihole-unbound/traefik/traefik.toml:/traefik.toml
-      - /home/pi/containers/pihole-unbound/traefik/rules/:/rules/
+      - /home/pi/containers/dns/traefik/traefik.toml:/traefik.toml
+      - /home/pi/containers/dns/traefik/rules/:/rules/
     networks:
       internal:
         ipv4_address: 172.16.0.4
       discovery:
-    dns:
-      - 172.16.0.2
+#    dns:
+#      - 172.16.0.2
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=true"
@@ -73,14 +80,14 @@ services:
         ipv4_address: 172.16.0.2
     volumes:
       # Just include the a_records file:
-      # - /home/pi/containers/unbound/a-records.conf:/etc/unbound/a-records.conf:ro
+      # - /home/pi/containers/dns/unbound/a-records.conf:/etc/unbound/a-records.conf:ro
       # Or if you have custom unbound.conf file and other config files
       # (the container will generate the files if not present):
-      - /home/pi/containers/pihole-unbound/etc/unbound:/etc/unbound/
+      - /home/pi/containers/dns/unbound:/etc/unbound/
       # Add root hints file
       # root hints file from here:
       #    wget -O root.hints https://www.internic.net/domain/named.root
-      # - /home/pi/containers/pihole_unbound/var/log/unbound.log:/var/log/unbound/unbound.log
+      # - /home/pi/containers/dns/log/unbound.log:/var/log/unbound/unbound.log
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=false"
@@ -98,13 +105,15 @@ services:
     hostname: pi.hole
     dns:
       - 127.0.0.1
-      - 8.8.8.8
+      - 172.16.0.2
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "67:67/udp"
+#      - "67:67/udp"
       - "8053:80/tcp"
       #- "443:443/tcp"
+    cap_add:
+      -  NET_ADMIN
     networks:
       internal:
         ipv4_address: 172.16.0.3
@@ -118,7 +127,7 @@ services:
       # IPv6 Address if your network supports it
       #ServerIPv6: 192.168.1.55
       # jwilder/proxy envs, see readme for more info
-      PROXY_LOCATION: pihole
+#      PROXY_LOCATION: pihole
       VIRTUAL_HOST: pihole.docker.lan
       VIRTUAL_PORT: 80
       TZ: "Europe/Copenhagen"
@@ -132,14 +141,14 @@ services:
       # Add exra hosts to the pi-hole hosts file
       #- '<mylocalthing.lan>:<host IP>'
     volumes:
-      - '/home/pi/containers/pihole-unbound/etc/pihole/:/etc/pihole/'
+      - '/home/pi/containers/dns/pihole/:/etc/pihole/'
       # WARNING: if this log don't exist as a file on the host already
       # docker will try to create a directory in it's place making for lots of errors
-      - '/home/pi/containers/pihole-unbound/var/log/pihole.log:/var/log/pihole.log'
+      - '/home/pi/containers/dns/log/pihole.log:/var/log/pihole.log'
       # DNSmasq
-      - '/home/pi/containers/pihole-unbound/etc/dnsmasq.d/:/etc/dnsmasq.d/'
+      - '/home/pi/containers/dns/dnsmasq/dnsmasq.d/:/etc/dnsmasq.d/'
       # lighthttpd
-      #- '/home/pi/containers/pihole-unbound/etc/lighttpd/:/etc/lighttpd/'
+      #- '/home/pi/containers/dns/lighttpd/:/etc/lighttpd/'
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=true"

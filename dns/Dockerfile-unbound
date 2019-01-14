@@ -18,10 +18,10 @@ COPY entrypoints/unbound.sh  /entrypoint.sh
 # Fails somehow?? Maybe because the build is not routing to the internet.
 #RUN /etc/periodic/monthly/update-unbound-root-hints
 #RUN cd /etc/unbound && wget -O root.hints https://www.internic.net/domain/named.root
-COPY config/unbound/root.hints  /etc/unbound/
+COPY config/unbound/root.hints  /etc/unbound/root.hints
 
-# Copy unbound files to a place we are not volume mounting so they can be copies back
-# by the entrypoint.
+# Copy unbound files to a place we are not volume mounting so they can be copied back
+# by the entrypoint on a fresh start.
 RUN mkdir -p /etc/unbound_example && cp -R /etc/unbound/* /etc/unbound_example/
 
 EXPOSE 53/udp 53/tcp

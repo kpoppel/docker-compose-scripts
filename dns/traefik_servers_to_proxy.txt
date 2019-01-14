@@ -1,0 +1,6 @@
+backend,squeezebox,home.lan,http://10.0.0.2:9000
+backend,plex,home.lan,http://10.0.0.2:32400
+backend,duplicati,home.lan,http://10.0.0.2:8300
+rewrite,notes,home.lan,https://10.0.0.2/ns
+#rewrite,browser,home.lan,https://10.0.0.2/browserstation
+rewrite,photo,home.lan,https://10.0.0.2/photostation
