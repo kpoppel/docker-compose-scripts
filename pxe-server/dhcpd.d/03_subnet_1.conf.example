@@ -1,0 +1,21 @@
+# If we own the DHCP server, add this option for faster boot
+option ipxe.no-pxedhcp 1;
+
+subnet <SUBNET BASE IP> netmask <NETMASK typically 255.255.255.0> {
+  allow unknown-clients;
+  authoritative;
+  default-lease-time 7200;
+  max-lease-time 84200;
+  range <FROM IP> <TO IP>;
+  option routers <ROUTER IP>;
+  option subnet-mask <SUBNET NETMASK>;
+
+  if exists ipxe.bzimage and exists user-class and option user-class = "iPXE" {
+      filename "http://<NGINX SERVER:PORT>/boot.ipxe";
+  } elsif option client-arch != 00:00 {
+     filename "ipxe.efi";
+  } else {
+      filename "undionly.kpxe";
+  }
+  next-server <NGINX SERVER>;
+}

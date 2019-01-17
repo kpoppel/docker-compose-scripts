@@ -1,0 +1,74 @@
+version: "3"
+
+services:
+  pxeserver:
+    build: .
+    image: dhcpd-dns-pxe:latest
+    restart: always
+    environment:
+      # Global environment
+      DNS_DOMAIN: ${DNS_DOMAIN:-example.com}
+      TZ: ${TZ:-Europe/Copenhagen}
+
+      # Global stuff for DHCP
+      DHCP_ENABLE: ${DHCP_ENABLE:-yes}
+      DHCP_INTERFACE: ${DHCP_INTERFACE:-eth0}
+      DHCP_DNS_SERVERS: ${DHCP_DNS_SERVERS:-8.8.8.8}
+      DHCP_IP_FORWARDING: ${DHCP_IP_FORWARDING:-false}
+      DHCP_NTP_SERVERS: ${DHCP_NTP_SERVERS:-0.pool.ntp.org}
+      DHCP_DNS_SERVERS: ${DHCP_DNS_SERVERS:-8.8.8.8}
+      DHCP_NETBIOS_NAME_SERVERS: ${DHCP_NETBIOS_NAME_SERVERS}
+      DHCP_LEASE_TIME: ${DHCP_LEASE_TIME:-3600}
+      DHCP_MAX_LEASE_TIME: ${DHCP_MAX_LEASE_TIME:-14400}
+      # Subnets are defined via files mounted from volumes below
+
+      # Global stuff for DNS (which we turn off because upstream DNS servers handles this part)
+      # Set 
+      DNS_ENABLE: ${DNS_ENABLE:-yes}
+      DNS_LISTEN_ADDRESS: ${DNS_LISTEN_ADDRESS}
+      DNS_PORT: ${DNS_PORT:-53}
+      DNS_UPSTREAM: ${DNS_UPSTREAM:-8.8.8.8}
+
+      # Global stuff for TFTP
+      TFTP_ENABLE: ${TFTP_ENABLE:-yes}
+      TFTP_ROOT: ${TFTP_ROOT:-/tftpboot/pxelinux}
+
+    ports:
+      - ${PORT_DNSMASQ_DNS:-53}:53/udp
+      - 67:67/udp
+      - 69:69/udp
+    volumes:
+      - ./tftp:/tftpboot/pxelinux:ro
+      - ./dhcpd.d:/etc/dhcpd.d/local:ro
+      - ./dnsmasq.d:/etc/dnsmasq.d/local:ro
+      - ${ADMIN_PATH}/dhcpd-dns-pxe/leases:/var/lib/misc
+#      - ${SHARE_PATH}/dhcpd-dns-pxe/pxelinux:/tftpboot/pxelinux:ro
+#      - ${ADMIN_PATH}/dhcpd-dns-pxe/etc/dhcpd.d:/etc/dhcpd.d/local:ro
+#      - ${ADMIN_PATH}/dhcpd-dns-pxe/etc/dnsmasq.d:/etc/dnsmasq.d/local:ro
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+
+  pxe-nginx:
+    image: nginx
+     # Later try running it through traefik just for fun using the discovery network and labels
+#    expose:
+#      - ${NGINX_PORT:-80}
+    ports:
+      - ${NGINX_PORT:-80}:${NGINX_PORT:-80}
+    environment:
+      NGINX_HOST: ${NGINX_HOST:-example.com}
+      NGINX_PORT: ${NGINX_PORT:-80}
+    networks:
+      discovery:
+    command: /bin/bash -c "envsubst < /etc/nginx/conf.d/pxe-site.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+    volumes:
+      - ./nginx/pxe-site.template:/etc/nginx/conf.d/pxe-site.template
+      - ./nginx/html:/usr/share/nginx/html:ro
+
+networks:
+  discovery:
+    external: true
+#volumes:
+#  leases:
+

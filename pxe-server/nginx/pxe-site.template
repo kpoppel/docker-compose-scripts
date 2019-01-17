@@ -1,0 +1,6 @@
+server {
+    # Server configuration
+    listen          ${NGINX_PORT} default_server;
+    server_name     ${NGINX_HOST};
+    root            /usr/share/nginx/html;
+}

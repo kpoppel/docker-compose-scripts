@@ -1,0 +1,82 @@
+#!ipxe
+set esc:hex 1b
+set bold ${esc:string}[1m
+set boldoff ${esc:string}[22m
+set fg_gre ${esc:string}[32m
+set fg_cya ${esc:string}[36m
+set fg_whi ${esc:string}[37m
+set version 1.00
+
+##########################################
+# NOTE: CONFIGURE server_ip and port here:
+set server_ip 10.0.1.128:8081
+##########################################
+set http_url http://${server_ip}/
+
+:start
+# Some menu defaults
+set menu-timeout 5000
+set submenu-timeout ${menu-timeout}
+isset ${menu-default} || set menu-default exit
+
+menu iPXE menu for ${bold}${fg_gre}boot.ipxe ${fg_whi}v${version}${boldoff}
+item --gap --            ------------------ Operating Systems --------------------
+item --key c coreos      Boot CoreOS from webserver
+#item --key l livecd      Boot rescue livecd
+#item --key u ubuntu      Ubuntu 16.04 thin client
+item --key t thinclient  ThinClient
+#item --key w winpe       W10 PE
+item
+choose --timeout ${menu-timeout} --default ${menu-default} selected || goto cancel
+set menu-timeout 0
+goto ${selected}
+
+:cancel
+echo You cancelled the menu, dropping you to a shell
+
+:shell
+echo Type 'exit' to get the back to the menu
+shell
+set menu-timeout 0
+set submenu-timeout 0
+goto start
+
+:coreos
+  # https://coreos.com/os/docs/latest/booting-with-pxe.html
+#  set opts vga=0x347 coreos.first_boot=1 coreos.config.url=${http_url}coreos.ign
+  set opts vga=0x347 coreos.first_boot=1 
+  kernel ${http_url}coreos/coreos_production_pxe.vmlinuz initrd=coreos_production_pxe_image.cpio.gz ${opts}
+  initrd ${http_url}coreos/coreos_production_pxe_image.cpio.gz
+  boot
+  goto start
+
+:ubuntu
+  menu label ^Ubuntu 16.04 thin client
+  kernel ${http_url}vmlinuz vga=0x347 initrd=initrd.img ip=dhcp nfsroot=${server_ip}:/var/lib/nfsroot rw
+  initrd ${http_url}initrd.img
+  boot
+  goto start
+
+:thinclient
+  kernel ${http_url}memdisk || read void
+  initrd ${http_url}TS-6.1.1-Installer-1201.iso || read void
+#  initrd ${http_url}TinyCore-current.iso
+  imgargs memdisk iso raw || read void
+  boot
+  goto start
+
+:winpe
+  # Architecture: amd86
+  # Do exactly what this page says:
+  #  https://docs.microsoft.com/en-us/windows/deployment/configure-a-pxe-server-to-load-windows-pe
+  # Get the ADK here:
+  #  https://developer.microsoft.com/en-us/windows/hardware/windows-assessment-deployment-kit#winADK
+  # Automated install:
+  #  http://ipxe.org/howto/winpe
+  kernel wimboot
+  initrd ${http_url}wpe/BCD          BCD
+  initrd ${http_url}wpe/boot.sdi     boot.sdi
+  initrd -n ${http_url}wpe/boot.wim ${http_url}wpe/boot.wim boot.wim
+  boot
+  goto start
+

@@ -1,0 +1,5 @@
+class "pxeclients" {
+        match if substring(option vendor-class-identifier, 0, 9) = "PXEClient";
+        next-server {{ DHCP_TFTP_SERVER }};
+        filename "{{ DHCP_BOOT_FILE }}";
+}
