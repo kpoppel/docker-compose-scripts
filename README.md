@@ -19,11 +19,10 @@ git config --global user.name "kpoppel"
 git config --global user.email "4174578+kpoppel@users.noreply.github.com"
 ```
 
-# Cloning the repository:
+# Cloning the repository (SSH):
 ```bash
    git clone git@github.com:kpoppel/docker-compose-scripts.git
 ```
-
 
 # Preparing
  Edit and add to /etc/rc.local:

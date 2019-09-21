@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk --no-cache add unbound openssl wget dnssec-root
+RUN apk --no-cache add unbound openssl wget dnssec-root ca-certificates
 
 #Debugging
 #RUN apk --no-cache add iproute2 bind-tools tcpdump

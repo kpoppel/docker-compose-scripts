@@ -22,21 +22,27 @@ networks:
 services:
   traefik:
     # You can set a name if you don't like the generated one:
-    #container_name: traefik
+    container_name: "traefik"
     domainname: ${DOMAINNAME}
     
-    image: traefik
-    restart: unless-stopped
+    image: "traefik"
+    restart: "unless-stopped"
     # Note I opt to whitelist certain apps for exposure to traefik instead of auto discovery
     # use `--docker.exposedbydefault=true` if you don't want to have to do this
     # Log levels: DEBUG INFO WARN ERROR FATAL PANIC  --logLevel=
-    command: "--api --docker --docker.domain=docker.lan --docker.exposedbydefault=false"
+    command:
+#      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=discovery"
+      - "--entryPoints.web.address=:80"
     ports:
       - "80:80"      # The HTTP port
       - "443:443"    # The HTTPS port
       - "8080:8080"  # The Web UI (enabled by --api)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
       #- /dev/null:/traefik.toml
       # NOTE: Create the traefik.toml file first unless docker should create a directory of it and lots of problems!
       # Content:
@@ -46,8 +52,8 @@ services:
       # watch = true
       ##########
       # Alternately use customised configuration file and rules directory:
-      - ${DATA_DIR}/dns/traefik/traefik.toml:/traefik.toml
-      - ${DATA_DIR}/dns/traefik/rules/:/rules/
+#      - ${DATA_DIR}/dns/traefik/traefik.toml:/traefik.toml
+#      - ${DATA_DIR}/dns/traefik/rules/:/rules/
     networks:
       internal:
         ipv4_address: 172.16.0.4
@@ -57,14 +63,14 @@ services:
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=true"
-       - "traefik.frontend.rule=Host:monitor.${DOMAINNAME}"
-       - "traefik.backend=monitor"
-       - "traefik.port=8080"
+       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAINNAME}`)"
+       - "traefik.http.routers.traefik.entryPoints=web"
+       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
   unbound:
     restart: always
     # You can set a name if you don't like the generated one:
-    #container_name: unbound
+    container_name: "unbound"
     domainname: ${DOMAINNAME}
     build:
       context: .
@@ -91,14 +97,14 @@ services:
     labels:
        # required when using --docker.exposedbydefault=false
        - "traefik.enable=false"
-       - "traefik.frontend.rule=HostRegexp:unbound.${DOMAINNAME}"
-       - "traefik.backend=unbound"
-       - "traefik.port=80"
+#       - "traefik.http.routers.unbound.rule=Host(`unbound.${DOMAINNAME}`)"
+#       - "traefik.http.routers.unbound.entryPoints=web"
+#        - "traefik.http.services.unbound.loadbalancer.server.port=80"
 
   pihole:
     restart: always
     # You can set a name if you don't like the generated one:
-    #container_name: pihole
+    container_name: "pihole"
     domainname: ${DOMAINNAME}
 
     image: pihole/pihole:latest
@@ -118,7 +124,7 @@ services:
       internal:
         ipv4_address: 172.16.0.3
       discovery:
-        ipv4_address: 172.31.0.254
+        ipv4_address: 172.18.0.254
     depends_on:
       - unbound
     environment:
@@ -153,11 +159,11 @@ services:
        - "traefik.enable=true"
        # NOTE: All unknown URLs will be directed to this contaner!
        # https://www.techjunktrunk.com/docker/2017/11/03/traefik-default-server-catch-all/
-       - "traefik.frontend.rule=HostRegexp:pihole.${DOMAINNAME},{catchall:.*}"
-       - "traefik.frontend.priority=1"
-       - "traefik.backend=pihole"
-       - "traefik.port=80"
-
+#V1 rule       - "traefik.frontend.rule=HostRegexp:pihole.${DOMAINNAME},{catchall:.*}"
+#V1 rule       - "traefik.frontend.priority=1"
+       - "traefik.http.routers.pihole.rule=Host(`pihole.${DOMAINNAME}`)"
+       - "traefik.http.routers.pihole.entryPoints=web"
+       - "traefik.http.services.pihole.loadbalancer.server.port=80"
 
 # We install all pihole utilities so the the built in pihole commands will work via docker exec <container> <command> like so:
 #
