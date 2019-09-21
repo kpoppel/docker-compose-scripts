@@ -1,6 +1,10 @@
 # docker-compose-scripts
 My docker compose scripts for my Raspberry PI 3 B+
 
+# SSH Agent:
+```bash
+   eval $(ssh-agent -s)
+```
 # SSH setup:
 ```bash
    ssh-keygen -t rsa -b 4096 -C "4174578+kpoppel@users.noreply.github.com"
@@ -9,15 +13,17 @@ My docker compose scripts for my Raspberry PI 3 B+
    ssh -T git@github.com
 ```
 
-# SSH Agent:
+# Setup git:
 ```bash
-   eval $(ssh-agent -s)
-   ssh-add ~/.ssh/id_rsa
+git config --global user.name "kpoppel"
+git config --global user.email "4174578+kpoppel@users.noreply.github.com"
 ```
+
 # Cloning the repository:
 ```bash
-   git clone git@github.com:/kpoppel/docker-compose-scripts
+   git clone git@github.com:kpoppel/docker-compose-scripts.git
 ```
+
 
 # Preparing
  Edit and add to /etc/rc.local:

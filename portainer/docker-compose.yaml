@@ -1,4 +1,6 @@
 # create new portainer container for raspberry pi with docker-compose
+# create networks if not done:
+#   docker network create discovery
 # start:    `docker-compose up -d`
 # upgrade:  `docker-compose down && docker rm portainer-app && docker-compose up -d`
 # address:  [localhost](http://localhost:9000)
@@ -9,17 +11,17 @@
 version: '3'
 services:
   portainer:
-    image: portainer/portainer:latest
+    image: "portainer/portainer:latest"
       # using portainer image for raspberry pi by deviantony
       # sources: [github.com](https://github.com/portainer/portainer.git)
-    container_name: portainer
+    container_name: "portainer"
     volumes:
       # establish connection to docker
       - /var/run/docker.sock:/var/run/docker.sock
       # data directory for this app
-      - /home/pi/containers/portainer/data:/data
+      - ${DATA_DIR}/portainer/data:/data
       # SSL certs for the container
-#      - /home/pi/ssl-keys:/certs
+#      - ${DATA_DIR}/ssl-keys:/certs
     command: --host=unix:///var/run/docker.sock
 #    command: --host=unix:///var/run/docker.sock  --ssl --sslcert /certs/piserver.crt --sslkey /certs/piserver.key
     networks:
@@ -30,11 +32,10 @@ services:
     restart: on-failure
     labels:
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host:portainer.docker.lan"
-      - "traefik.backend=portainer"
-      - "traefik.docker.network=discovery"
-      - "traefik.port=9000"
-
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAINNAME}`)"
+      - "traefik.http.routers.portainer.entryPoints=web"
+#Use default.      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+#Use default.      - "traefik.docker.network=discovery"
 networks:
   discovery:
     external:
