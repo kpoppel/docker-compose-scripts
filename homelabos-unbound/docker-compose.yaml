@@ -1,0 +1,45 @@
+#https://github.com/pi-hole/docker-pi-hole
+version: "3"
+
+networks:
+  traefik_network:
+    external:
+      name: homelabos_traefik
+
+services:
+  app:
+    # REQUIRED
+    image: klutchell/unbound
+    restart: unless-stopped
+    ports:
+      - 53:5053/tcp
+      - 53:5053/udp
+    networks:
+      - traefik_network
+    volumes:
+      - "/var/homelabos/unbound/config:/opt/unbound/etc/unbound"
+    labels:
+      - "traefik.enable=false"
+#      - "traefik.enable=true"
+#      - "traefik.docker.network=homelabos_traefik"
+#      - "traefik.http.services.chowdown.loadbalancer.server.scheme=http"
+#      - "traefik.http.services.chowdown.loadbalancer.server.port=4000"
+#      - "traefik.http.routers.chowdown-http.rule=Host(`unbound.${DOMAIN}`)"
+#      - "traefik.http.routers.chowdown-http.entrypoints=http"
+##{% if not chowdown.https_only %}
+##      - "traefik.http.routers.chowdown-http.middlewares={% if chowdown.https_only %}redirect@file, {% else %}{% if chowdown.auth %}{% if authelia.enable %}authelia@file{% else %}basicAuth@file{% endif %}, {% endif %}{% endif %}customFrameHomelab@file"
+##{% else %}
+#      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+#      - "traefik.http.routers.chowdown-http.middlewares=redirect-to-https"
+##{% endif %}
+#      - "traefik.http.routers.chowdown.rule=Host(`unbound.${DOMAIN}`)"
+#      - "traefik.http.routers.chowdown.entrypoints=https"
+#      - "traefik.http.routers.chowdown.middlewares=basicAuth@file, customFrameHomelab@file"
+#      - "traefik.http.routers.chowdown.tls=true"
+##{% if traefik.dns_challenge_provider %}
+#        - "traefik.http.routers.chowdown.tls.certresolver=dns"
+#        - "traefik.http.routers.chowdown.tls.domains[0].main=${DOMAIN}"
+#        - "traefik.http.routers.chowdown.tls.domains[0].sans=*.${DOMAIN}"
+##{% else %}
+##        - "traefik.http.routers.chowdown.tls.certresolver=http"
+##{% endif %}
